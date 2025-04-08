@@ -50,6 +50,12 @@ When nil, use current frame's font as fallback."
   :group 'which-key-posframe
   :type 'function)
 
+(defcustom which-key-posframe-refposhandler #'which-key-posframe-refposhandler-default
+  "The refposhandler used by which-key-posframe.
+
+NOTE: This variable is very useful to EXWM users."
+  :type 'function)
+
 (defcustom which-key-posframe-border-width 1
   "The border width used by which-key-posframe.
 When 0, no border is shown."
@@ -89,11 +95,31 @@ the dimensions of the buffer text to be displayed in the popup."
        :foreground-color (face-attribute 'which-key-posframe :foreground nil t)
        :height (car act-popup-dim)
        :width (cdr act-popup-dim)
+       :refposhandler which-key-posframe-refposhandler
        :lines-truncate t
        :internal-border-width which-key-posframe-border-width
        :internal-border-color (face-attribute 'which-key-posframe-border
                                               :background nil t)
        :override-parameters which-key-posframe-parameters))))
+
+(defun which-key-posframe-refposhandler-default (&optional frame)
+  "The default posframe refposhandler used by whick-key-posframe. Copied from vertico-posframe
+Optional argument FRAME ."
+  (cond
+   ;; EXWM environment
+   ((bound-and-true-p exwm--connection)
+    (or (ignore-errors
+          (let ((info (elt exwm-workspace--workareas
+                           exwm-workspace-current-index)))
+            (cons (elt info 0)
+                  (elt info 1))))
+        ;; Need user install xwininfo.
+        (ignore-errors
+          (posframe-refposhandler-xwininfo frame))
+        ;; Fallback, this value will incorrect sometime, for example: user
+        ;; have panel.
+        (cons 0 0)))
+   (t nil)))
 
 (defun which-key-posframe--hide ()
   "Hide which-key buffer when posframe popup is used."
